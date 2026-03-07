@@ -13,6 +13,7 @@ RUN apt-get update \
       ca-certificates \
       curl \
       libicu72 \
+      libsqlite3-0 \
       libssl3 \
       tzdata \
     && rm -rf /var/lib/apt/lists/*
