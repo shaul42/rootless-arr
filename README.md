@@ -1,90 +1,62 @@
 # rootless-arr
 
-Self-built, rootless-friendly images for the Arr stack without `s6` or `PUID/PGID` hacks.
-
-Included services:
+Small container images for:
 - `sonarr`
 - `radarr`
 - `prowlarr`
 
-## Goals
-
-- Run cleanly as non-root (`uid/gid 1000` by default).
-- Keep runtime simple (`ENTRYPOINT` runs the app directly).
-- Avoid LSIO `s6-applyuidgid` issues in rootless Podman.
+They are intended for rootless Podman or simple Docker setups where you want:
+- a non-root runtime user
+- no `s6` init system
+- pinned upstream releases with SHA256 verification at build time
 
 ## Build
 
-From this directory:
+Build everything:
 
 ```bash
 ./build.sh
 ```
 
-By default it builds:
-- `ghcr.io/your-org/rootless-sonarr:latest`
-- `ghcr.io/your-org/rootless-radarr:latest`
-- `ghcr.io/your-org/rootless-prowlarr:latest`
-
-You can override:
-
-```bash
-REGISTRY=ghcr.io/<your-user-or-org> TAG=v1 ./build.sh
-```
-
-Build a subset:
+Build selected services:
 
 ```bash
 ./build.sh sonarr prowlarr
 ```
 
-Pass through a Podman network mode when the host bridge backend is problematic:
+Useful overrides:
 
 ```bash
+REGISTRY=ghcr.io/acme/arr ./build.sh
+TAG=v1 ./build.sh
 BUILD_NETWORK=host ./build.sh
+APP_UID=1000 APP_GID=1000 ./build.sh
 ```
 
-## Push
+`REGISTRY` is the image namespace prefix. For example, `REGISTRY=ghcr.io/acme/arr` produces:
+- `ghcr.io/acme/arr/sonarr:<tag>`
+- `ghcr.io/acme/arr/radarr:<tag>`
+- `ghcr.io/acme/arr/prowlarr:<tag>`
 
-```bash
-podman push ghcr.io/<your-user-or-org>/rootless-sonarr:v1
-podman push ghcr.io/<your-user-or-org>/rootless-radarr:v1
-podman push ghcr.io/<your-user-or-org>/rootless-prowlarr:v1
-```
+## Releases
 
-## Runtime expectations
+Pinned upstream versions, download URLs, and SHA256 hashes live in [build-matrix.tsv](/root/src/srv03/rootless-arr/build-matrix.tsv).
 
-- Mount `/config` to persistent storage.
-- Ensure host path ownership matches container user (`1000:1000` by default).
-- Default ports:
-  - Sonarr: `8989`
-  - Radarr: `7878`
-  - Prowlarr: `9696`
-
-## Optional build args
-
-The shared image build supports:
-- `APP_UID` (default `1000`)
-- `APP_GID` (default `1000`)
-- `APP_ID`
-- `APP_BIN`
-- `APP_PORT`
-- `APP_DOWNLOAD_URL` to pin a specific release artifact URL
-
-Examples:
-
-```bash
-podman build -t ghcr.io/acme/rootless-sonarr:latest \
-  --network host \
-  --build-arg APP_UID=1000 \
-  --build-arg APP_GID=1000 \
-  --build-arg APP_ID=sonarr \
-  --build-arg APP_BIN=Sonarr \
-  --build-arg APP_PORT=8989 \
-  --build-arg APP_DOWNLOAD_URL='https://services.sonarr.tv/v1/download/main/latest?version=4&os=linux&arch=x64' \
-  ./image
-```
+To upgrade a service, update its row in that file.
 
 ## CI
 
-GitHub Actions builds all three images from the shared `image/` context using a matrix and can publish them to GHCR.
+GitHub Actions reads the same matrix and builds one job per service:
+- `Build sonarr`
+- `Build radarr`
+- `Build prowlarr`
+
+When the workflow publishes to GHCR, it uses the current GitHub repository namespace automatically. For example, if this repo lives at `github.com/acme/rootless-arr`, the Sonarr image is published as `ghcr.io/acme/rootless-arr/sonarr`.
+
+Published images use explicit version tags from [build-matrix.tsv](/root/src/srv03/rootless-arr/build-matrix.tsv) so a pull always refers to a specific upstream release.
+
+## Runtime
+
+- Mount `/config`
+- Match host ownership to the container user, default `1000:1000`
+- Ports: Sonarr `8989`, Radarr `7878`, Prowlarr `9696`

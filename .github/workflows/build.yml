@@ -14,24 +14,36 @@ permissions:
   packages: write
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.json }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Load build matrix
+        id: matrix
+        run: |
+          json='{"include":['
+          sep=''
+          while IFS=$'\t' read -r service app_bin app_port app_version app_download_url app_download_sha256; do
+            if [[ "${service}" == "service" || -z "${service}" ]]; then
+              continue
+            fi
+            json+="${sep}{\"service\":\"${service}\",\"app_bin\":\"${app_bin}\",\"app_port\":\"${app_port}\",\"app_version\":\"${app_version}\",\"app_download_url\":\"${app_download_url}\",\"app_download_sha256\":\"${app_download_sha256}\"}"
+            sep=','
+          done < build-matrix.tsv
+          json+=']}'
+          echo "json=${json}" >> "${GITHUB_OUTPUT}"
+
   build:
+    needs: prepare
+    name: Build ${{ matrix.service }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - service: sonarr
-            app_bin: Sonarr
-            app_port: "8989"
-            app_download_url: "https://services.sonarr.tv/v1/download/main/latest?version=4&os=linux&arch=x64"
-          - service: radarr
-            app_bin: Radarr
-            app_port: "7878"
-            app_download_url: "https://radarr.servarr.com/v1/update/master/updatefile?runtime=netcore&os=linux&arch=x64"
-          - service: prowlarr
-            app_bin: Prowlarr
-            app_port: "9696"
-            app_download_url: "https://prowlarr.servarr.com/v1/update/master/updatefile?runtime=netcore&os=linux&arch=x64"
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
 
     steps:
       - name: Checkout
@@ -56,12 +68,12 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ steps.repo.outputs.value }}/rootless-${{ matrix.service }}
+          images: ${{ steps.repo.outputs.value }}/${{ matrix.service }}
           tags: |
+            type=raw,value=${{ matrix.app_version }}
             type=ref,event=branch
             type=ref,event=tag
             type=sha
-            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and optionally push
         uses: docker/build-push-action@v6
@@ -78,5 +90,6 @@ jobs:
             APP_BIN=${{ matrix.app_bin }}
             APP_PORT=${{ matrix.app_port }}
             APP_DOWNLOAD_URL=${{ matrix.app_download_url }}
+            APP_DOWNLOAD_SHA256=${{ matrix.app_download_sha256 }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

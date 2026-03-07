@@ -4,49 +4,40 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PODMAN="${PODMAN:-podman}"
 REGISTRY="${REGISTRY:-ghcr.io/your-org}"
-TAG="${TAG:-latest}"
+TAG="${TAG:-}"
 BUILD_NETWORK="${BUILD_NETWORK:-}"
 APP_UID="${APP_UID:-1000}"
 APP_GID="${APP_GID:-1000}"
+MATRIX_FILE="${MATRIX_FILE:-${ROOT_DIR}/build-matrix.tsv}"
 
-declare -A APP_BINS=(
-  [sonarr]=Sonarr
-  [radarr]=Radarr
-  [prowlarr]=Prowlarr
-)
-
-declare -A APP_PORTS=(
-  [sonarr]=8989
-  [radarr]=7878
-  [prowlarr]=9696
-)
-
-declare -A APP_DOWNLOAD_URLS=(
-  [sonarr]='https://services.sonarr.tv/v1/download/main/latest?version=4&os=linux&arch=x64'
-  [radarr]='https://radarr.servarr.com/v1/update/master/updatefile?runtime=netcore&os=linux&arch=x64'
-  [prowlarr]='https://prowlarr.servarr.com/v1/update/master/updatefile?runtime=netcore&os=linux&arch=x64'
-)
-
+declare -A SELECTED_SERVICES=()
 if [[ $# -gt 0 ]]; then
-  services=("$@")
-else
-  services=(sonarr radarr prowlarr)
+  for service in "$@"; do
+    SELECTED_SERVICES["$service"]=1
+  done
 fi
 
-for service in "${services[@]}"; do
-  if [[ -z "${APP_BINS[$service]:-}" ]]; then
-    echo "Unknown service: ${service}" >&2
-    exit 1
+build_count=0
+
+while IFS=$'\t' read -r service app_bin app_port app_version app_download_url app_download_sha256; do
+  if [[ "${service}" == "service" || -z "${service}" ]]; then
+    continue
   fi
 
-  image="${REGISTRY}/rootless-${service}:${TAG}"
+  if [[ ${#SELECTED_SERVICES[@]} -gt 0 && -z "${SELECTED_SERVICES[$service]:-}" ]]; then
+    continue
+  fi
+
+  image_tag="${TAG:-${app_version}}"
+  image="${REGISTRY}/${service}:${image_tag}"
   build_args=(
     --build-arg "APP_UID=${APP_UID}"
     --build-arg "APP_GID=${APP_GID}"
     --build-arg "APP_ID=${service}"
-    --build-arg "APP_BIN=${APP_BINS[$service]}"
-    --build-arg "APP_PORT=${APP_PORTS[$service]}"
-    --build-arg "APP_DOWNLOAD_URL=${APP_DOWNLOAD_URLS[$service]}"
+    --build-arg "APP_BIN=${app_bin}"
+    --build-arg "APP_PORT=${app_port}"
+    --build-arg "APP_DOWNLOAD_URL=${app_download_url}"
+    --build-arg "APP_DOWNLOAD_SHA256=${app_download_sha256}"
   )
 
   if [[ -n "${BUILD_NETWORK}" ]]; then
@@ -55,6 +46,18 @@ for service in "${services[@]}"; do
 
   echo "Building ${image}"
   "${PODMAN}" build "${build_args[@]}" -t "${image}" "${ROOT_DIR}/image"
-done
+  build_count=$((build_count + 1))
+  unset "SELECTED_SERVICES[$service]"
+done < "${MATRIX_FILE}"
+
+if [[ ${#SELECTED_SERVICES[@]} -gt 0 ]]; then
+  echo "Unknown service(s): ${!SELECTED_SERVICES[*]}" >&2
+  exit 1
+fi
+
+if [[ "${build_count}" -eq 0 ]]; then
+  echo "No services selected from ${MATRIX_FILE}" >&2
+  exit 1
+fi
 
 echo "Build complete."
