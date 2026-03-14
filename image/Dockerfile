@@ -17,7 +17,7 @@ RUN apt-get update \
       libssl3 \
       tzdata \
     && if [ "${APP_KIND}" = "bazarr" ]; then \
-      apt-get install -y --no-install-recommends python3 unzip; \
+      apt-get install -y --no-install-recommends python3 python3-pil python3-lxml python3-numpy unzip; \
     elif [ "${APP_KIND}" = "arr" ]; then \
       apt-get install -y --no-install-recommends libicu72; \
     else \
