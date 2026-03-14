@@ -1,4 +1,5 @@
-service	app_bin	app_port	app_version	app_download_url	app_download_sha256
-sonarr	Sonarr	8989	4.0.16.2944	https://github.com/Sonarr/Sonarr/releases/download/v4.0.16.2944/Sonarr.main.4.0.16.2944.linux-x64.tar.gz	1d4a74c763c5a236c0e6eb577534c5b1e53585e5d2ce189a3e901efb5b2adfcc
-radarr	Radarr	7878	6.0.4.10291	https://github.com/Radarr/Radarr/releases/download/v6.0.4.10291/Radarr.master.6.0.4.10291.linux-core-x64.tar.gz	fa90dd9bfd060b96756739d7827b51d67d04849001aa5733c4e53c5f9a08b023
-prowlarr	Prowlarr	9696	2.3.0.5236	https://github.com/Prowlarr/Prowlarr/releases/download/v2.3.0.5236/Prowlarr.master.2.3.0.5236.linux-core-x64.tar.gz	50900ed274bd76abadfefa78ba7ec7077fbe28662a0860a638692a879bc1a6fa
+service	app_kind	app_bin	app_port	app_version	app_download_url	app_download_sha256
+sonarr	arr	Sonarr	8989	4.0.16.2944	https://github.com/Sonarr/Sonarr/releases/download/v4.0.16.2944/Sonarr.main.4.0.16.2944.linux-x64.tar.gz	1d4a74c763c5a236c0e6eb577534c5b1e53585e5d2ce189a3e901efb5b2adfcc
+radarr	arr	Radarr	7878	6.0.4.10291	https://github.com/Radarr/Radarr/releases/download/v6.0.4.10291/Radarr.master.6.0.4.10291.linux-core-x64.tar.gz	fa90dd9bfd060b96756739d7827b51d67d04849001aa5733c4e53c5f9a08b023
+prowlarr	arr	Prowlarr	9696	2.3.0.5236	https://github.com/Prowlarr/Prowlarr/releases/download/v2.3.0.5236/Prowlarr.master.2.3.0.5236.linux-core-x64.tar.gz	50900ed274bd76abadfefa78ba7ec7077fbe28662a0860a638692a879bc1a6fa
+bazarr	bazarr	bazarr.py	6767	1.5.6	https://github.com/morpheus65535/bazarr/releases/download/v1.5.6/bazarr.zip	3f9623c27ca3a597313310b7cbf98f39cb5e4aab907ca6690c21bb25f6a6ebb4

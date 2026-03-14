@@ -27,11 +27,11 @@ jobs:
         run: |
           json='{"include":['
           sep=''
-          while IFS=$'\t' read -r service app_bin app_port app_version app_download_url app_download_sha256; do
+          while IFS=$'\t' read -r service app_kind app_bin app_port app_version app_download_url app_download_sha256; do
             if [[ "${service}" == "service" || -z "${service}" ]]; then
               continue
             fi
-            json+="${sep}{\"service\":\"${service}\",\"app_bin\":\"${app_bin}\",\"app_port\":\"${app_port}\",\"app_version\":\"${app_version}\",\"app_download_url\":\"${app_download_url}\",\"app_download_sha256\":\"${app_download_sha256}\"}"
+            json+="${sep}{\"service\":\"${service}\",\"app_kind\":\"${app_kind}\",\"app_bin\":\"${app_bin}\",\"app_port\":\"${app_port}\",\"app_version\":\"${app_version}\",\"app_download_url\":\"${app_download_url}\",\"app_download_sha256\":\"${app_download_sha256}\"}"
             sep=','
           done < build-matrix.tsv
           json+=']}'
@@ -87,6 +87,7 @@ jobs:
             APP_UID=1000
             APP_GID=1000
             APP_ID=${{ matrix.service }}
+            APP_KIND=${{ matrix.app_kind }}
             APP_BIN=${{ matrix.app_bin }}
             APP_PORT=${{ matrix.app_port }}
             APP_DOWNLOAD_URL=${{ matrix.app_download_url }}

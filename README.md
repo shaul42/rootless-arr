@@ -4,6 +4,7 @@ Small container images for:
 - `sonarr`
 - `radarr`
 - `prowlarr`
+- `bazarr`
 
 They are intended for rootless Podman or simple Docker setups where you want:
 - a non-root runtime user
@@ -37,6 +38,7 @@ APP_UID=1000 APP_GID=1000 ./build.sh
 - `ghcr.io/acme/arr/sonarr:<tag>`
 - `ghcr.io/acme/arr/radarr:<tag>`
 - `ghcr.io/acme/arr/prowlarr:<tag>`
+- `ghcr.io/acme/arr/bazarr:<tag>`
 
 ## Releases
 
@@ -50,6 +52,7 @@ GitHub Actions reads the same matrix and builds one job per service:
 - `Build sonarr`
 - `Build radarr`
 - `Build prowlarr`
+- `Build bazarr`
 
 When the workflow publishes to GHCR, it uses the current GitHub repository namespace automatically. For example, if this repo lives at `github.com/acme/rootless-arr`, the Sonarr image is published as `ghcr.io/acme/rootless-arr/sonarr`.
 
@@ -59,4 +62,4 @@ Published images use explicit version tags from [build-matrix.tsv](/root/src/srv
 
 - Mount `/config`
 - Match host ownership to the container user, default `1000:1000`
-- Ports: Sonarr `8989`, Radarr `7878`, Prowlarr `9696`
+- Ports: Sonarr `8989`, Radarr `7878`, Prowlarr `9696`, Bazarr `6767`

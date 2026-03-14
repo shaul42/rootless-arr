@@ -19,7 +19,7 @@ fi
 
 build_count=0
 
-while IFS=$'\t' read -r service app_bin app_port app_version app_download_url app_download_sha256; do
+while IFS=$'\t' read -r service app_kind app_bin app_port app_version app_download_url app_download_sha256; do
   if [[ "${service}" == "service" || -z "${service}" ]]; then
     continue
   fi
@@ -34,6 +34,7 @@ while IFS=$'\t' read -r service app_bin app_port app_version app_download_url ap
     --build-arg "APP_UID=${APP_UID}"
     --build-arg "APP_GID=${APP_GID}"
     --build-arg "APP_ID=${service}"
+    --build-arg "APP_KIND=${app_kind}"
     --build-arg "APP_BIN=${app_bin}"
     --build-arg "APP_PORT=${app_port}"
     --build-arg "APP_DOWNLOAD_URL=${app_download_url}"
