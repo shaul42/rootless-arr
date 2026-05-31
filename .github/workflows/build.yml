@@ -27,27 +27,70 @@ jobs:
         shell: bash
         run: |
           json="$(
-            jq -R -s -c '
-              split("\n")
-              | map(select(length > 0))
-              | map(split("\t"))
-              | map(select(.[0] != "service"))
-              | map(
-                  if length != 7 then
-                    error("invalid build-matrix.tsv row: expected 7 tab-separated fields")
-                  else
-                    {
-                      service: .[0],
-                      app_kind: .[1],
-                      app_bin: .[2],
-                      app_port: .[3],
-                      app_version: .[4],
-                      app_download_url: .[5],
-                      app_download_sha256: .[6]
-                    }
-                  end
+            awk -F '\t' '
+              function json_escape(value,    i, ch, out) {
+                out = "\""
+                for (i = 1; i <= length(value); i++) {
+                  ch = substr(value, i, 1)
+                  if (ch == "\\" || ch == "\"") {
+                    out = out "\\" ch
+                  } else if (ch == "\b") {
+                    out = out "\\b"
+                  } else if (ch == "\f") {
+                    out = out "\\f"
+                  } else if (ch == "\n") {
+                    out = out "\\n"
+                  } else if (ch == "\r") {
+                    out = out "\\r"
+                  } else if (ch == "\t") {
+                    out = out "\\t"
+                  } else {
+                    out = out ch
+                  }
+                }
+                return out "\""
+              }
+
+              BEGIN {
+                printf("{\"include\":[")
+                first = 1
+              }
+
+              NR == 1 {
+                next
+              }
+
+              NF == 0 {
+                next
+              }
+
+              NF != 7 {
+                printf("invalid build-matrix.tsv row %d: expected 7 tab-separated fields, got %d\n", NR, NF) > "/dev/stderr"
+                exit 1
+              }
+
+              {
+                if (!first) {
+                  printf(",")
+                }
+
+                printf(
+                  "{\"service\":%s,\"app_kind\":%s,\"app_bin\":%s,\"app_port\":%s,\"app_version\":%s,\"app_download_url\":%s,\"app_download_sha256\":%s}",
+                  json_escape($1),
+                  json_escape($2),
+                  json_escape($3),
+                  json_escape($4),
+                  json_escape($5),
+                  json_escape($6),
+                  json_escape($7)
                 )
-              | {include: .}
+
+                first = 0
+              }
+
+              END {
+                printf("]}")
+              }
             ' build-matrix.tsv
           )"
           echo "json=${json}" >> "${GITHUB_OUTPUT}"
