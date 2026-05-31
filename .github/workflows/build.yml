@@ -24,17 +24,32 @@ jobs:
 
       - name: Load build matrix
         id: matrix
+        shell: bash
         run: |
-          json='{"include":['
-          sep=''
-          while IFS=$'\t' read -r service app_kind app_bin app_port app_version app_download_url app_download_sha256; do
-            if [[ "${service}" == "service" || -z "${service}" ]]; then
-              continue
-            fi
-            json+="${sep}{\"service\":\"${service}\",\"app_kind\":\"${app_kind}\",\"app_bin\":\"${app_bin}\",\"app_port\":\"${app_port}\",\"app_version\":\"${app_version}\",\"app_download_url\":\"${app_download_url}\",\"app_download_sha256\":\"${app_download_sha256}\"}"
-            sep=','
-          done < build-matrix.tsv
-          json+=']}'
+          json="$(
+            jq -R -s -c '
+              split("\n")
+              | map(select(length > 0))
+              | map(split("\t"))
+              | map(select(.[0] != "service"))
+              | map(
+                  if length != 7 then
+                    error("invalid build-matrix.tsv row: expected 7 tab-separated fields")
+                  else
+                    {
+                      service: .[0],
+                      app_kind: .[1],
+                      app_bin: .[2],
+                      app_port: .[3],
+                      app_version: .[4],
+                      app_download_url: .[5],
+                      app_download_sha256: .[6]
+                    }
+                  end
+                )
+              | {include: .}
+            ' build-matrix.tsv
+          )"
           echo "json=${json}" >> "${GITHUB_OUTPUT}"
 
   build:
