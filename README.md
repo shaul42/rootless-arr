@@ -13,42 +13,27 @@ They are intended for rootless Podman or simple Docker setups where you want:
 
 ## Build
 
-Build everything:
+Each service has a self-contained Dockerfile under `images/<service>/`. To build locally:
 
 ```bash
-./build.sh
+podman build -t sonarr:local images/sonarr
 ```
 
-Build selected services:
+The runtime user defaults to `1000:1000` and can be overridden at build time:
 
 ```bash
-./build.sh sonarr prowlarr
+podman build --build-arg APP_UID=2000 --build-arg APP_GID=2000 -t sonarr:local images/sonarr
 ```
-
-Useful overrides:
-
-```bash
-REGISTRY=ghcr.io/acme/arr ./build.sh
-TAG=v1 ./build.sh
-BUILD_NETWORK=host ./build.sh
-APP_UID=1000 APP_GID=1000 ./build.sh
-```
-
-`REGISTRY` is the image namespace prefix. For example, `REGISTRY=ghcr.io/acme/arr` produces:
-- `ghcr.io/acme/arr/sonarr:<tag>`
-- `ghcr.io/acme/arr/radarr:<tag>`
-- `ghcr.io/acme/arr/prowlarr:<tag>`
-- `ghcr.io/acme/arr/bazarr:<tag>`
 
 ## Releases
 
-Pinned upstream versions, download URLs, and SHA256 hashes live in [build-matrix.tsv](/root/src/srv03/rootless-arr/build-matrix.tsv).
+Each Dockerfile pins its upstream release via `ARG APP_VERSION` and `ARG APP_SHA256`, and download URLs derive from the version.
 
-To upgrade a service, update its row in that file.
+To upgrade a service, update those two lines in its Dockerfile.
 
 ## CI
 
-GitHub Actions reads the same matrix and builds one job per service:
+GitHub Actions builds one job per service:
 - `Build sonarr`
 - `Build radarr`
 - `Build prowlarr`
@@ -56,7 +41,7 @@ GitHub Actions reads the same matrix and builds one job per service:
 
 When the workflow publishes to GHCR, it uses the current GitHub repository namespace automatically. For example, if this repo lives at `github.com/acme/rootless-arr`, the Sonarr image is published as `ghcr.io/acme/rootless-arr/sonarr`.
 
-Published images use explicit version tags from [build-matrix.tsv](/root/src/srv03/rootless-arr/build-matrix.tsv) so a pull always refers to a specific upstream release.
+Published images use explicit version tags from the build matrix so a pull always refers to a specific upstream release.
 
 ## Runtime
 

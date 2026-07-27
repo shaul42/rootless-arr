@@ -14,94 +14,17 @@ permissions:
   packages: write
 
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.matrix.outputs.json }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Load build matrix
-        id: matrix
-        shell: bash
-        run: |
-          json="$(
-            awk -F '\t' '
-              function json_escape(value,    i, ch, out) {
-                out = "\""
-                for (i = 1; i <= length(value); i++) {
-                  ch = substr(value, i, 1)
-                  if (ch == "\\" || ch == "\"") {
-                    out = out "\\" ch
-                  } else if (ch == "\b") {
-                    out = out "\\b"
-                  } else if (ch == "\f") {
-                    out = out "\\f"
-                  } else if (ch == "\n") {
-                    out = out "\\n"
-                  } else if (ch == "\r") {
-                    out = out "\\r"
-                  } else if (ch == "\t") {
-                    out = out "\\t"
-                  } else {
-                    out = out ch
-                  }
-                }
-                return out "\""
-              }
-
-              BEGIN {
-                printf("{\"include\":[")
-                first = 1
-              }
-
-              NR == 1 {
-                next
-              }
-
-              NF == 0 {
-                next
-              }
-
-              NF != 7 {
-                printf("invalid build-matrix.tsv row %d: expected 7 tab-separated fields, got %d\n", NR, NF) > "/dev/stderr"
-                exit 1
-              }
-
-              {
-                if (!first) {
-                  printf(",")
-                }
-
-                printf(
-                  "{\"service\":%s,\"app_kind\":%s,\"app_bin\":%s,\"app_port\":%s,\"app_version\":%s,\"app_download_url\":%s,\"app_download_sha256\":%s}",
-                  json_escape($1),
-                  json_escape($2),
-                  json_escape($3),
-                  json_escape($4),
-                  json_escape($5),
-                  json_escape($6),
-                  json_escape($7)
-                )
-
-                first = 0
-              }
-
-              END {
-                printf("]}")
-              }
-            ' build-matrix.tsv
-          )"
-          echo "json=${json}" >> "${GITHUB_OUTPUT}"
-
   build:
-    needs: prepare
     name: Build ${{ matrix.service }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
+      matrix:
+        service:
+          - sonarr
+          - radarr
+          - prowlarr
+          - bazarr
 
     steps:
       - name: Checkout
@@ -110,6 +33,10 @@ jobs:
       - name: Normalize image namespace
         id: repo
         run: echo "value=ghcr.io/${GITHUB_REPOSITORY,,}" >> "${GITHUB_OUTPUT}"
+
+      - name: Read app version
+        id: version
+        run: echo "value=$(sed -n 's/^ARG APP_VERSION=//p' "images/${{ matrix.service }}/Dockerfile")" >> "${GITHUB_OUTPUT}"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -128,7 +55,7 @@ jobs:
         with:
           images: ${{ steps.repo.outputs.value }}/${{ matrix.service }}
           tags: |
-            type=raw,value=${{ matrix.app_version }}
+            type=raw,value=${{ steps.version.outputs.value }}
             type=ref,event=branch
             type=ref,event=tag
             type=sha
@@ -136,19 +63,10 @@ jobs:
       - name: Build and optionally push
         uses: docker/build-push-action@v6
         with:
-          context: ./image
+          context: images/${{ matrix.service }}
           push: ${{ github.event_name != 'pull_request' }}
           platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            APP_UID=1000
-            APP_GID=1000
-            APP_ID=${{ matrix.service }}
-            APP_KIND=${{ matrix.app_kind }}
-            APP_BIN=${{ matrix.app_bin }}
-            APP_PORT=${{ matrix.app_port }}
-            APP_DOWNLOAD_URL=${{ matrix.app_download_url }}
-            APP_DOWNLOAD_SHA256=${{ matrix.app_download_sha256 }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
