@@ -1,7 +1,7 @@
-FROM docker.io/debian:bookworm-slim
+FROM docker.io/debian:trixie-slim
 
-ARG APP_VERSION=1.5.6
-ARG APP_SHA256=3f9623c27ca3a597313310b7cbf98f39cb5e4aab907ca6690c21bb25f6a6ebb4
+ARG APP_VERSION=1.6.0
+ARG APP_SHA256=9c7523258bde58528d53acc91239774215e44e4f31d28cb2fb1c620ecdaef7b3
 ARG APP_UID=1000
 ARG APP_GID=1000
 
@@ -10,7 +10,7 @@ RUN apt-get update \
       ca-certificates \
       curl \
       libsqlite3-0 \
-      libssl3 \
+      libssl3t64 \
       python3 \
       python3-lxml \
       python3-numpy \

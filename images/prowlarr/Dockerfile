@@ -1,7 +1,7 @@
-FROM docker.io/debian:bookworm-slim
+FROM docker.io/debian:trixie-slim
 
-ARG APP_VERSION=2.3.5.5327
-ARG APP_SHA256=70c2a200f90b5e60239b0ca0cba2ed879ce31f3be68cf1bfe676e6b30292a9d0
+ARG APP_VERSION=2.5.2.5491
+ARG APP_SHA256=22fe95742869d7af5e16d420c7889185579152ea8324be6c6e4e3cd011f4c37b
 ARG APP_UID=1000
 ARG APP_GID=1000
 
@@ -9,9 +9,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       ca-certificates \
       curl \
-      libicu72 \
+      libicu76 \
       libsqlite3-0 \
-      libssl3 \
+      libssl3t64 \
       tzdata \
     && rm -rf /var/lib/apt/lists/*
 
